@@ -24,6 +24,8 @@ pipeline {
        
         stage('Updaload jar to Nexus') {
             steps {
+                    docker build .
+                    
                     nexusPublisher nexusInstanceId: 'kubeNexus', nexusRepositoryId: 'maven-releases', packages:
                     [
                         [$class: 'MavenPackage', mavenAssetList: [
