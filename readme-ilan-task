@@ -1,0 +1,18 @@
+Please git clone from: github.com/ilangrs/course.git
+
+The project is running on minikube on Windows 10 pro machine.
+Virtualbox was installed since docker image is not working with k8 "nodePort"
+You should also set enough memory (the default is 2048)
+
+The idea was to send a fully automated package.
+
+To make it work I take the following steps:
+
+Jenkins is running with an helm chart with JCasc (unfortunatly JCasc configuration couldn't upload)
+However, the plugins and login user name are automatically installed.
+
+Sonarqube is also running with helm chart and some different values to run it on minikube.
+
+Nexus deployed via "regual" deployment manifest.
+
+The Jenkins file use Kubernetes plugin in order to run the build process inside containers.
