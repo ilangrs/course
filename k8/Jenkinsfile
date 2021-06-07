@@ -34,7 +34,7 @@ stages{
     stage('Git Clone') {
             steps {
                 // Get the code from a GitHub repository
-                git 'https://github.com/zivkashtan/course.git'
+                git 'https://github.com/ilangrs/course.git'
             }
         }
     stage('maven'){
