@@ -14,6 +14,7 @@ controller:
     - rebuild
     - sonar
     - nexus-jenkins-plugin
+    - pipeline
   admin:
     existingSecret: "jenkins-admin-user"
     userKey: admin_user
@@ -55,7 +56,7 @@ controller:
           - "timezone"
           - "loginDetailsProperty"
           - mailer:
-              emailAddress: "shlomi@transmitsecurity.com"
+              emailAddress: "ilangrs07@gmail.com"
     configScripts:
       all-creds: |-
         credentials:
