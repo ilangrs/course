@@ -57,7 +57,7 @@ stages{
                 nexusPublisher nexusInstanceId: 'kubeNexus', nexusRepositoryId: 'maven-releases', packages: [
                     [$class: 'MavenPackage', mavenAssetList: [
                         [classifier: '', extension: '', filePath: "${env.WORKSPACE}/web/target/time-tracker-web-${BUILD_NUMBER}.war"]
-                        ], mavenCoordinate: [artifactId: 'time-tracker-web', groupId: 'clinic.programming.time-tracker', packaging: 'war', version: '${BUILD_NUMBER}']]
+                        ], mavenCoordinate: [artifactId: 'time-tracker-web', groupId: 'clinic.programming.time-tracker', packaging: 'war', version: "${BUILD_NUMBER}"]]
                         ], tagName: ''
                 }
             }
@@ -67,9 +67,12 @@ stages{
         steps{
             script{
                 container('docker'){
-                    sh "docker build  --build-arg =${env.WORKSPACE}/web/target/time-tracker-web-${BUILD_NUMBER}.war -t time-tracker:${BUILD_NUMBER} . "
+                    sh '''docker build --build-arg TARGET_FOLDER=${env.WORKSPACE}/web/target/time-tracker-web-${BUILD_NUMBER}.war \
+                    --build-arg WAR_FILE=time-tracker-web-${BUILD_NUMBER}.war \
+                    -t 192.168.99.101:8123/time-tracker:${BUILD_NUMBER} .
+                    '''
                     sh 'docker login -u user -p password http://192.168.99.101:8123'
-                    sh "docker push http://192.168.99.101:8123/time-tracker:${BUILD_NUMBER}"
+                    sh "docker push 192.168.99.101:8123/time-tracker:${BUILD_NUMBER}"
                     //sh "docker rmi $(docker images --filter=reference="http://192.168.99.101:8123/time-tracker:${BUILD_NUMBER}*" -q)"
                     sh 'docker logout http://192.168.99.101:8123'
 
