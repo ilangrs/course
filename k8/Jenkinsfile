@@ -1,0 +1,81 @@
+pipeline{
+agent { kubernetes{ yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: docker-socket
+    emptyDir: {}
+  containers:
+  - name: maven
+    image: maven:alpine
+    command:
+    - cat
+    tty: true
+  - name: docker
+    image: docker:19.03.1
+    command:
+    - sleep
+    args:
+    - 99d
+    volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run
+  - name: docker-daemon
+    image: docker:19.03.1-dind
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run
+'''}}
+
+stages{
+    stage('Git Clone') {
+            steps {
+                // Get the code from a GitHub repository
+                git 'https://github.com/zivkashtan/course.git'
+            }
+        }
+    stage('maven'){
+        steps{
+            script{
+                container('maven'){
+                withSonarQubeEnv(credentialsId: 'sonarqube', installationName: 'Sonarqube') {
+                sh '''
+                mvn versions:set -DnewVersion=${BUILD_NUMBER}
+                mvn clean package org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar -Dsonar.inclusions=/web/**
+                '''
+                }
+
+                nexusPublisher nexusInstanceId: 'kubeNexus', nexusRepositoryId: 'maven-releases', packages:[
+                    [$class: 'MavenPackage', mavenAssetList: [
+                        [classifier: '', extension: '', filePath: "${env.WORKSPACE}/core/target/time-tracker-core-${BUILD_NUMBER}.jar"]
+                        ], mavenCoordinate: [artifactId: 'time-tracker-parent', groupId: 'clinic.programming.time-tracker', packaging: 'jar', version: "${BUILD_NUMBER}"]],
+                        ], tagName: ''
+                    
+                nexusPublisher nexusInstanceId: 'kubeNexus', nexusRepositoryId: 'maven-releases', packages: [
+                    [$class: 'MavenPackage', mavenAssetList: [
+                        [classifier: '', extension: '', filePath: "${env.WORKSPACE}/web/target/time-tracker-web-${BUILD_NUMBER}.war"]
+                        ], mavenCoordinate: [artifactId: 'time-tracker-web', groupId: 'clinic.programming.time-tracker', packaging: 'war', version: '${BUILD_NUMBER}']]
+                        ], tagName: ''
+                }
+            }
+        }
+    }
+    stage('Docker Build And Push'){
+        steps{
+            script{
+                container('docker'){
+                    sh "docker build  --build-arg =${env.WORKSPACE}/web/target/time-tracker-web-${BUILD_NUMBER}.war -t time-tracker:${BUILD_NUMBER} . "
+                    sh 'docker login -u user -p password http://192.168.99.101:8123'
+                    sh "docker push http://192.168.99.101:8123/time-tracker:${BUILD_NUMBER}"
+                    //sh "docker rmi $(docker images --filter=reference="http://192.168.99.101:8123/time-tracker:${BUILD_NUMBER}*" -q)"
+                    sh 'docker logout http://192.168.99.101:8123'
+
+                }
+            }
+        }
+    }
+    }
+}

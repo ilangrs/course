@@ -1,0 +1,125 @@
+controller:
+  # image: "jenkins-test"
+  tag: "lts"
+  enableXmlConfig: true
+  overwriteJobs: true
+  installPlugins:
+    - kubernetes
+    - workflow-job
+    - workflow-aggregator
+    - credentials-binding
+    - git
+    - configuration-as-code
+    - job-dsl
+    - rebuild
+    - sonar
+    - nexus-jenkins-plugin
+  admin:
+    existingSecret: "jenkins-admin-user"
+    userKey: admin_user
+    passwordKey: admin_password
+
+  healthProbes: false
+  # ingress:
+  #   enabled: true
+  #   apiVersion: v1
+  #   annotations:
+  #     kubernetes.io/ingress.class: nginx
+  #   hosts:
+  #     - host:
+  #       paths:
+  #         - /
+  #   tls: []
+  servicePort: 8080
+  targetPort: 8080
+  # For minikube, set this to NodePort, elsewhere use LoadBalancer
+  # Use ClusterIP if your setup includes ingress controller
+  serviceType: NodePort
+
+
+  JCasc: 
+    enabled: true
+    authorizationStrategy: |- 
+      loggedInUsersCanDoAnything:
+        allowAnonymousRead: false
+    securityRealm: |- 
+      local:
+        allowsSignup: false
+        enableCaptcha: false
+        users:
+        - id: "ilang"
+          name: "ilang"
+          properties:
+          - "apiToken"
+          - "myView"
+          - "timezone"
+          - "loginDetailsProperty"
+          - mailer:
+              emailAddress: "shlomi@transmitsecurity.com"
+    configScripts:
+      all-creds: |-
+        credentials:
+          system:
+            domainCredentials:
+            - credentials:
+              - string:
+                  description: "sonarqube"
+                  id: "sonarqube"
+                  scope: GLOBAL
+                  secret: "{AQAAABAAAAAwZOWbo1dPgo7sqtWPqGGQDUtP0l2g5RWZTt5XSX5RWO2EbYN0Hug++ygOKrjRCQ+ITh+gb/zUW1eDEvGWI1izeg==}"
+              - usernamePassword:
+                  description: "nexus"
+                  id: "nexus"
+                  password: "{AQAAABAAAAAQmu77Vt6/UmeaVf0AdO2FUZy8cJo5b/FYODs/G/TFZXo=}"
+                  scope: GLOBAL
+                  username: "admin"
+      other-config: |-
+        unclassified:
+          globalNexusConfiguration:
+              instanceId: "1cfd39a9327347b2a8127264593023f0"
+              nxrmConfigs:
+              - nxrm3Configuration:
+                  credentialsId: "nexus"
+                  displayName: "nexus"
+                  id: "kubeNexus"
+                  internalId: "20dd9702-1d76-4d04-89a5-3d311495e998"
+                  serverUrl: "http://192.168.99.101:32000/"
+          sonarGlobalConfiguration:
+              buildWrapperEnabled: false
+              installations:
+              - credentialsId: "sonarqube"
+                name: "Sonarqube"
+                serverUrl: "http://192.168.99.101:31320/"
+                triggers:
+                  skipScmCause: false
+                  skipUpstreamCause: false
+        tools:
+          maven:
+              installations:
+              - name: "M3"
+                properties:
+                - installSource:
+                    installers:
+                    - maven:
+                        id: "3.8.1"
+            mavenGlobalConfig:
+              globalSettingsProvider: "standard"
+              settingsProvider: "standard"
+            sonarRunnerInstallation:
+              installations:
+              - name: "Sonarqube"
+                properties:
+                - installSource:
+                    installers:
+                    - sonarRunnerInstaller:
+                        id: "4.6.2.2472"
+
+# persistence:
+#   enabled: true
+#   existingClaim: jenkins-volume
+
+agent: 
+  volumes:
+    - type: HostPath
+      hostPath: /var/run/docker.sock
+      mountPath: /var/run/docker.sock
